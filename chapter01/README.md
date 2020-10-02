@@ -41,11 +41,52 @@ $ pytest test_particle_simulator::test_evolve
 ```
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;编写好测试后，就可使用插件pytest-benchmark将测试作为基准测试程序来执行。如果修改函数test_evolve，使其接受一个名为benchmark的参数，框架pytest将自动将资源benchmark作为参数传递给这个函数。在pytest中，这些资源被称为测试夹具(fixture)。为调用基准测试资源，可将要作为测试基准程序的函数作为第一个参数，并在它后面制定其他参数。将test_veolve改成test_evolve_benchmark之后，再次执行上述命令即可。
 
-### 使用cProfile找出瓶颈
+### 1.4 使用cProfile找出瓶颈
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;核实程序的正确性并测量其执行时间后，便可着手找出需要进行优化的代码片段了。与整个程序相比，这些代码的规模通常很小。
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在python中标准库中，有两个剖析模块。
 - 模块profile：这个模块完全是由python编写的，给程序执行带来了很大的开销。这个模块之所以出现在标准库中，原因在于其强大的平台支持和易于扩展。
 - 模块cProfile：这是主要的剖析模块，其接口与profile相同。这个模块是使用C语言编写的，因此开销很小，适合用作通用的剖析器。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;无须对其源代码做任何修改，就可对现有python脚本或函数执行cProfile。要在命令行使用cProfile，可像下面这样做：
+```
+$ python -m cProfile python_filename.py
+```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;这将打印长长的输出，其中包括针对应用程序中调用的所有函数的多个指标。要按特定的指标对输出进行排序，可使用选项-s。在下面的示例中，输出是按后面的指标tottime排序的。
+```
+$ python -m cProfile -s tottime python_filename.py
+```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;要将cProfile生成的数据保存到输出文件中，可使用选项-o。cProfile使用模块stats和其他工具能够识别的格式。下面演示了选项-o的用法。
+```
+$ python -m cProfile -o prof.out python_filename.py
+```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;要cProfile作为python模块使用，必须像下面这样调用函数cProfile.run。
+```py
+from modulename import testfunc
+import cProfile
+
+cProfile.run("testfunc()")
+```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;还可调用对象cProfile.Profile的方法的代码之间包含一段代码，如下所示：
+```py
+from modulename import testfunc
+import cProfile
+
+pr = cProfile.Profile()
+pr.enable()
+testfunc()
+pr.disable()
+pr.print_stas()
+```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;也可在IPython中以交互的方式使用cProfile。魔法命令%prun能够剖析特定的函数调用。
+```text
+cProfile的输出分成了5列：
+    - ncalls：函数被调同的次数。
+    - tottime：执行函数花费的总时间，不考虑其他函数调用。
+    - cumtime：执行函数花费的总时间，考虑其他函数调用。
+    - percall：单次函数调用花费的时间--可通过将中时间除以调用次数得到。
+    - filename:lineno：文件名和相应的行号。
+```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;最重要的指标是tottime，它表示执行函数花费的时间(不包含子调用)，能够知道瓶颈在那里。
 
