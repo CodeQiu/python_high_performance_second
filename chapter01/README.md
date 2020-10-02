@@ -40,3 +40,12 @@ $ pytest path/to/module.py::function_name
 $ pytest test_particle_simulator::test_evolve
 ```
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;编写好测试后，就可使用插件pytest-benchmark将测试作为基准测试程序来执行。如果修改函数test_evolve，使其接受一个名为benchmark的参数，框架pytest将自动将资源benchmark作为参数传递给这个函数。在pytest中，这些资源被称为测试夹具(fixture)。为调用基准测试资源，可将要作为测试基准程序的函数作为第一个参数，并在它后面制定其他参数。将test_veolve改成test_evolve_benchmark之后，再次执行上述命令即可。
+
+### 使用cProfile找出瓶颈
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;核实程序的正确性并测量其执行时间后，便可着手找出需要进行优化的代码片段了。与整个程序相比，这些代码的规模通常很小。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在python中标准库中，有两个剖析模块。
+- 模块profile：这个模块完全是由python编写的，给程序执行带来了很大的开销。这个模块之所以出现在标准库中，原因在于其强大的平台支持和易于扩展。
+- 模块cProfile：这是主要的剖析模块，其接口与profile相同。这个模块是使用C语言编写的，因此开销很小，适合用作通用的剖析器。
+
