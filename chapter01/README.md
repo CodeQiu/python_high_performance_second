@@ -15,6 +15,7 @@
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在本节中，编写一个粒子模拟器测试应用程序并对其进行剖析。这个模拟器程序接受一些粒子，并根据指定的规则模拟这些粒子随时间流逝的运动情况。
 
 ### 1.2 编写测试和基准测试程序
+
 #### 测量基准测试程序的运行时间
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;要计算基准测试程序的运行时间，一种方式是使用Unix命令time。
 ```
@@ -88,5 +89,67 @@ cProfile的输出分成了5列：
     - percall：单次函数调用花费的时间--可通过将中时间除以调用次数得到。
     - filename:lineno：文件名和相应的行号。
 ```
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;最重要的指标是tottime，它表示执行函数花费的时间(不包含子调用)，能够知道瓶颈在那里。
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;最重要的指标是tottime，它表示执行函数花费的时间(不包含子调用)，能够知道瓶颈在那里。在文件夹cProfile_taylor中编写递归函数计算exp(x)和sin(x)的泰勒章开始的多项式。
 
+### 1.5 使用line_profiler逐行进行剖析
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;要使用line_profiler，需要对要监视的函数应用装饰器@profile。请注意，无须从其他模块中导入函数profile，因为运行剖析脚本kernporf.py时，它将被注入全局命名空间。要对程序进行剖析，需要给函数evolve添加装饰器@profile。
+```py
+@profile
+def evolve(self, dt):
+    # 代码
+    pass
+```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;脚本kernprof.py生成一个输出文件，并将剖析结果打印到标准输出。运行这个脚本时，应指定两个选项：
+- l:以使用函数line_profiler
+- v:以立即将结果打印到屏幕
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;下面演示了kernprof.py的用法：
+```shell
+$ kernprof -l -v python_script.py
+```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;也可在Ipython中运行这个剖析器，这样可以进行交互式编辑。应该首先加载line_profiler扩展，它提供了魔法命令lprun。使用这个命令，就无须添加装饰器@profile。输出非常直观。分成了6列：
+```text
+- line # : 运行的代码行号。
+- Hits   : 代码行运行的次数。
+- Time   : 代码行的执行时间，单位为微秒。
+- Per Hit: Time/Hits。
+- % Time : 代码行总执行时间所占的百分比。
+- Line Contents: 代码行的内容。
+```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;只需要查看% Time列，就可以清楚的知道时间都花在了什么地方。
+
+### 1.6 优化代码
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;要优化纯粹的python代码，其中效果最显著的方式是对使用的算法进行改进。另一种方式是最大限度地减少指令数，交换循环顺序，较少中间变量。
+
+### 1.7 模块dis
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在CPython解释器中，Python代码首先被转换为中间表示--字节码，再由python解释器执行。要了解代码是如何转换为字节码的，可使用python模块dis(dis表示disassemble，即反汇编)。这个模块的用法非常简单，只需对目标代码调用函数dis.dis即可。
+```py
+import dis
+from modulename import funcname
+dis.dis(funcname)
+```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;这将打印美方代码对应的字节码指令列表。
+
+### 1.8 使用memory_profiler剖析内存使用情况
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;memory_profiler要求对源代码进行处理：要给监视的函数加上装饰器@profile。在particle_simulator.py中对函数benchmark改造为函数benchmark_memory，以实例化大量Particle实例，并缩短模拟时间。
+```shell
+$ python -m memory_profiler python_script.py
+```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;为减少内存消耗，可在Particle类中使用__slots__。这将避免将实例的变量存储在内部字典中，从而节省一些内存。然而，这种策略也有缺点：不能添加__slots__中没有指定的属性。
+```py
+class Particle():
+    __slots__ = ("x", "y", "ang_vel")
+
+    def __init__(self, x, y, ang_vel):
+        self.x = y
+        self.y = y
+        self.ang_vel = ang_vel
+```
+
+### 1.9 小结
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;优化时，首先是测试，并找出应用程序的瓶颈。

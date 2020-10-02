@@ -34,6 +34,7 @@ class ParticleSimulator():
                 p.y += d_y
                 # 3. 不断重复，直到时间过去
 
+
 # def test_evolve():
 #     particles = [Particle(0.3, 0.5, 1), Particle(0.0, -0.5, -1), Particle(-0.1, -0.4, 3)]
 #     simulator = ParticleSimulator(particles)
@@ -59,7 +60,7 @@ def test_evolve_benchmark(benchmark):
     simulator.evolve(0.1)
 
     p0, p1, p2 = particles
-    
+
     def fequal(a, b, eps=1e-5):
         return abs(a - b) < eps
 

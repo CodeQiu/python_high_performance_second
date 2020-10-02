@@ -5,6 +5,7 @@ from random import uniform
 
 class Particle():
     """用于存储粒子的位置(x和y)以及角速度(ang_vel)"""
+    __slots__ = ("x", "y", "ang_vel")
 
     def __init__(self, x, y, ang_vel):
         self.x = x
@@ -107,9 +108,19 @@ def benchmark():
     simulator.evolve(0.1)
 
 
+@profile
+def benchmark_memory():
+    particles = [Particle(uniform(-1.0, 1.0), uniform(-1.0, 1.0), uniform(-1.0, 1.0)) for i in range(100000)]
+
+    simulator = ParticleSimulator(particles)
+    simulator.evolve(0.001)
+
+
 if __name__ == "__main__":
-    test_visualize()
+    # test_visualize()
 
     # test_evolve()
 
     # benchmark()
+
+    benchmark_memory()
