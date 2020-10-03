@@ -73,4 +73,32 @@ matches = [doc for doc in docs if "table" in doc]
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;为实现这种映射，可遍历文档集合，并将包含指定单词的文档的索引存储在一个字典中。这种实现与函数count_dict_func1类似，但不累积计数器，而是不断增大列表，其中包含与指定单词匹配的文档。如文件docs_search_index.py中。有了索引后，查询集合时只需要执行一次字典访问操作，有了反向索引，无论查询多少文档(只要它们都能够加入到内存中)，所需要的时间都一样。创建反向索引是一种代价高昂的操作，必须考虑每个可能的查询。
 
 #### 2.1.3 集
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;集是一个无序的元素集合，且其中的每个元素都必须是唯一的。集的主要用途是成员资格测试(检查集合中是否包含特定的元素)，集操作包含并集，差集和交集。在python中，集使用基于散列的算法实现的，因此其加法，删除和成员资格测试等操作的时间复杂度都为O(1)，即不受集合规模的影响。集的元素都是唯一的，因此常用于删除集合中重复的元素，为此只需将集合传递给构造函数set即可。如下所示：
+```py
+# 创建一个包含重复元素的列表
+x = list(range(1000)) + list(range(500))
+# 集x_unique将只包含x中不同的元素
+x_unique = set(x)
+```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;删除重复元素的时间复杂度为O(N)，因为这种操作要求读取输入，并将爱嗯每个不同的元素加入到集中。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;集操作的一种用途是布尔查询。在前面的反向索引示例中，要想支持包含多个单词的查询。为高效地支持这种操作，可修改前面创建索引的代码，敬爱嗯每个单词都关联到一个文档集(而不是文档列表)。这样修改后，只需执行合适的集操作就能够完成更复杂的查询。修改于docs_search_index.py中。
+
+#### 2.1.4 堆
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;堆是一个二叉树，它的每个父节点的值都只会小于或大于所有子节点的值。堆最有趣的特性在于最小元素总是在根节点：heap[0]。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;堆是一种设计用于快速查找并提取集合中最大值或最小值的数据结构，其典型用途是按照优先级处理一系列任务。从理论来说，可结合使用有序列表和模块bisect中的工具来替代堆，这样提取最大值的时间复杂度将为O(1)(使用list.pop)，但插入操作的时间复杂度仍为O(N)(别忘了，虽然找出插入位置的时间复杂度为O(log(N))，但在列表中间插入元素的时间复杂度仍为O(N))。堆是一种效率更高的数据结构，其元素插入操作和最大值提取操作的时间复杂度都为O(log(N))。在python中，堆是通过对列表执行模块heapq中的函数来创建的。见heapq_example.py。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;另一种方式是使用queue.PriorityQueue类，它还是线程和进程安全。见queue_example.py。
+
+#### 2.1.5 字典树
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+### 2.2 缓存和memoization
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+### 2.3 推导和生成器
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+### 2.4 小结
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
