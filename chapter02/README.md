@@ -92,13 +92,27 @@ x_unique = set(x)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;另一种方式是使用queue.PriorityQueue类，它还是线程和进程安全。见queue_example.py。
 
 #### 2.1.5 字典树
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;字典树也被称为前缀树，这种数据结构可能不那么流行，但很有用。在列表中查找与前缀匹配的字符串方面，字典树的速度极快，因此非常适合用来实现输入时查找和自动补全功能。实现自动补全功能时，候选内容列表非常大，因此要求响应时间很短。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;字典树的三个基本性质：
+- 根节点不包含字符，除根节点外的每一个节点都只包含一个字符
+- 从根节点到某一节点，路径上经过的字符连接起来，为该节点对应的字符串
+- 每个节点的所有节点包含的字符都不相同
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;实现见trie_demo.py。
 
 ### 2.2 缓存和memoization
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;缓存是一种出色的技术，用于改善各种应用程的性能，其背后的理念是将不容易得到的结果存储在临时区域。这种区域被称为缓存区，可以是内存，磁盘或远程地址。在应用程序中存储并重用以前的函数调用结果通常被称为memoization，这也是一种缓存技术。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;python标准库中包含了模块functools，能够直接使用基于内存的缓存。通过使用装饰器functools.lru_cache，可轻松地缓存函数的结果。如示例cache_example.py。装饰器lru_cache还提供了其他的功能。要限制缓存区的大小，可使用参数max_size指定要保留的元素个数；如果希望缓存区不受限制，可将这个参数设置为None。装饰器lru_cache还给被装饰的函数添加了额外的功能。例如，可使用方法cache_info来查看缓存的性能，还可使用cache_clear来清理缓存。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;利用缓存技术改善Fibonacci数列性能，见cache_fibonacci.py。
+
+#### joblib
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;joblib是一个简单的库，提供了基于磁盘的简单缓存，结果存储在磁盘中(初始化Memory时通过参数cachedir指定的目录中)，不会随应用程序的终止而消失，还有其他功能。由于使用了智能散列算法，joblib最大的特色在于，能够对操作NumPy数组的函数进行高效的memoization，这在科学和工程应用程序中很有用。见cache_joblib.py。
 
 ### 2.3 推导和生成器
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;见generator_demo.py。要实现高效的循环(尤其是在内存使用方面)，可结合使用迭代器和filter和map等函数。避免每个列表在推导时都将分配一个新列表。生成器是对象，在对其进行迭代时，将每次计算一个值并返回结果。
 
 ### 2.4 小结
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;通过优化算法，可改善应用程序的可伸缩性，使其能够处理更多的数据。缓存是一种以牺牲一些空间(内存或磁盘)为代价，来提高应用程序响应速度的技术。通过将for循环替换成速度更快的结构，如列表推导和生成器，可适度地提高速度。
