@@ -1,7 +1,7 @@
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Cython是一种扩展Python的语言，这是通过支持给函数，变量和类声明类型来实现的。这些类型声明让Cython能够将python脚本编译成高效的C语言代码。Cython还可充当python和C语言之间的桥梁，因为它提供了易于使用的结构，能够编写到外部C和C++例程的接口。
 
-
 ### 4.1 编译Cython扩展
+
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Cython语法被设计成python语法的超集。在不做任何修改的情况下，Cython就能够编译大部分python模块(例外的情况不多)。Cython源代码文件艾伦的扩展名为.pyx，可使用命令cython编译成C语言文件。
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;例如在文件hello.pyx中的一个打印Hello, World！的简单函数，使用下面的cython命令读取文件艾伦hello.pyx，并生成文件hello.c。

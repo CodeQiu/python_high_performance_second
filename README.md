@@ -6,7 +6,7 @@
 
 ## [第03章 使用NumPy和Pandas快速执行数组操作](chapter03/)
 
-## [第04章 使用Cyphon获得C语言性能](chapter04/)
+## [第04章 使用Cython获得C语言性能](chapter04/)
 
 ## [第05章 探索编译器](chapter05/)
 
