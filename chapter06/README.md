@@ -397,6 +397,62 @@ asyncio.ensure_future(fetch_square(4))
 
 #### 6.2.2 将阻塞代码转换为非阻塞代码
 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;虽然asyncio支持以异步方式连接到资源，但在有些情况下必须使用阻塞调用，例如，在第三方API(如数据库访问库)只暴露了阻塞调用时，或长时间运算的计算时。在这一节中，将介绍如何处理阻塞API，使其与asyncio兼容。对于阻塞代码，一种有效的策略是在一个独立的线程中运行它们。线程是在*操作系统*(OS)层级实现的，允许阻塞代码并行地执行。python提供了接口Executor，它设计用于在独立的线程中运行任务，并使用future来监视任务的进度。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;要初始化ThreadPoolExecutor，必须先从模块concurrent.futures导入它。这种执行器会生成一系列线程(称为工作线程)，这些线程将爱嗯等待执行抛给它们的任何任务。函数被提交后，执行器将负责将执行它的工作分派给空闲的工作线程，并跟踪结果。要指定线程数量，可使用参数max_workers。请注意，任务结束后，执行器不会销毁相应的线程，这样可降低创建和销毁线程的开销。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在下面的示例中，创建了一个包含三个工作线程的ThreadPoolExecutor，并提交了函数wait_and_return，这个函数将程序执行流程阻塞1秒钟，并返回一个消息字符串。然后使用方法submit调用这个函数，将其交给线程去执行。
+
+```py
+from concurrent.futures import ThreadPoolExecutor
+executor = ThreadPoolExecutor(max_workers=3)
+
+def wait_and_return(msg: str):
+    time.sleep(1)
+    return msg
+
+executor.submit(wait_and_return, "Hello, executor")
+# 结果：
+# <Future at 0x************ state=running>
+```
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;方法executor.submit调用这个函数，并返回一个future。在asyncio中，可使用方法loop.run_in_executor来管理任务的执行，这个方法的工作原理与executor.submit很像。
+
+```py
+fut = loop.run_in_executor(executor, wait_and_return, "Hello, asyncio executor")
+# <Future pending ...more info...>
+```
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;方法run_in_executor也返回一个asyncio.Future实例，可在其他代码中等待这个实例；主要差别在于，这个future仅在启动循环后彩绘运行。要运行它并获取相应，可使用loop.run_until_complete。见example11.py。
+
+```py
+loop.run_until_complete(fut) # 在非交互环境需使用函数print打印出来
+# 结果：
+# "Hello, asyncio executor"
+```
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;作为一个实例，可使用这种技巧同时获取多个页面。为此，导入流行的(阻塞)库requests，并在执行器中运行函数requests.get。见example12.py。
+
+```py
+import requests
+
+async def fetch_urls(urls):
+    response = []
+    for url in urls:
+        response.append(await loop.run_in_executor(executor, requests.get, url))
+    return response
+loop.run_unyil_complete(fetch_urls(["https://www.baidu.com","https://www.tencent.com", "https；//www.alibaba.com"]))
+# 结果：
+# []
+```
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;这个版本的fetch_urls不会阻塞执行，允许asyncio中的其他协程运行，但它并不是最优的，因为它不会并行地获取URL。要并行地获取URL，可使用asyncio.ensure_future，也可使用便利函数asyncio.gather(它一次性提交所有的协程并收集到来的结果)。下面演示了asyncio.gather用法。使用这个方法可并行地获取的URL树来嗯取决于有多少个工作线程。为避免这种限制，应使用非阻塞原生库，如aiohttp。
+
+```py
+def fetch_urls(urls):
+    return asyncio.gather(*[loop.run_in_executor(executor, requests.get, url) for url in urls])
+```
+
 ### 6.3 响应式编程
 
 #### 6.3.1 被观察者
