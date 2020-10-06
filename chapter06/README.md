@@ -211,7 +211,7 @@ while True:
         break
 ```
 
-```
+```text
 通过使用循环不断轮询来等待事件发生，这通常会被称为忙等待(busy-waiting)。
 ```
 
@@ -271,7 +271,129 @@ while True:
 
 ### 6.2 asyncio框架
 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;介绍如何使用asyncio获取并执行一个简单的回调函数，要获取asyncio循环，可调用asyncio.get_event_loop()。要调度回调函数，可使用loop.call_later，它接受以秒为单位的延迟和一个回调函数。还可以使用方法loop.stop来停止循环并退出程序。要开始处理已调度的调用，必须启动循环，为此可使用loop.run_forever。下面的示例演示了如何使用这些基本方法，它调度了一个打印消息并停止循环的回调函数。见文件example06.py。
+
+```py
+import asyncio
+
+loop = asyncio.get_event.loop()
+
+def callback():
+    print("Hello, asyncio")
+    loop.stop()
+
+loop.callback(1, callback)
+loop.run_forever()
+```
+
 #### 6.2.1 协程
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;使用回调函数的一个主要问题是，必须将程序划分成在特定事件发生时将被调用的小型函数。协程是另外一种将程序划分成小块的方式，让程序员能够编写看起来像同步代码但将异步执行的代码。可将协程视为可停止和恢复执行的函数。一个简单的协程示例是生成器。在python中，要定义生成器，可在函数中是哦呀嗯yield语句。在下面的示例中，实现了函数range_generator，它生成并返回值0到n。添加一条print语句，以显示生成器的内部状态。文件example07.py。
+
+```py  
+def range_generator(n: float):
+    i = 0
+    while i <= n:
+        print(f"Generating value {i}")
+        i += 1
+```
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;当调用函数range_generator时，其中的代码不会立即执行。请注意，下面的代码执行时，什么都不会打印，而只是返回一个generator对象。
+
+```py
+generator = range_generator(3)
+print(generator)
+# 结果：
+# <generator object range_generator at 0x************>
+```
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;要从生成器中取值，必须使用函数next;
+
+```py
+print(next(generator))
+# 输出：
+# Generating value 0
+print(next(generator))
+# 输出：
+# Generating value 1
+```
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;请注意，每当调用next时，都将运行代码，直到遇到yield语句。要让生成器接着往下执行，必须再次调用next。可将yield语句视为一个断电，可执行到这里停止，还可从这里开始继续执行(同时保持生成器的内部状态不变)。可在事件循环中利用这种停止和继续执行功能来实现并发。还可使用yield语句将值注入生成器(而不是从中提取值)。在下面的示例中，声明了函数parrot，它重复我们发送的每条消息。要让生成器接受值，可将yield赋给一个变量(在这里，使用的是语句message = yield)。要将值插入生成器，可使用方法send。在python中，能够接收值的生成器称为*基于生成器的协程*。见example08.py。
+
+```py
+def parrot():
+    while True:
+        message = yield 
+        print(f"Parrot says: {message}.")
+generator = parrot()
+generator.send(None)
+generator.send("Hello")
+generator.send("World")
+```
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;请注意，开始发送消息前，必须调用generator.send(None)，这旨在将函数执行到第一条yield语句。另外，注意函数parrot中有一个无限循环，如果不使用生成器，这个循环将没完没了地执行下去！基于前面的介绍，完全可以想见，事件艾伦循环可让多个生成器逐步推进，而不阻塞整个程序的执行流程。还可以想见，生成器可仅在相关资源就绪时才往前推进，而从不需要使用回调函数。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在asyncio中，可使用yield语句来实现协程，但从3.5版本起，python支持使用更直观的语法来定义功能强大的协程。要使用asyncio来定义协程，可使用语句async def。使用async def语句定义的协程也称*原生协程*。
+
+```py
+async def hello():
+    print("Hello, async!)
+coro = hello()
+print(coro)
+# 输出：
+# <coroutine object hello at 0x************>
+```
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;如上所见，调用函数hello时，没有立即执行其代码，而是返回了一个cproutine对象。asyncio协程不支持next，但可在asyncio事件循环中轻松地运行它们，为此只需使用方法run_until_complete即可。
+
+```py
+loop = asyncio.get_event_loop()
+loop.run_until_complete(coro)
+```
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;模块asyncio提供了资源(也称为awaitable)，可在协程中使用await语法请求它们。例如，如果要等待一段时间后再执行语句，可使用函数asyncio.sleep。见example09.py。
+
+```py
+async def wait_and_print(msg: str):
+    await asyncio.sleep(1)
+    print(f"Message: {msg}")
+
+loop.run_until_complete(wait_and_print("Hello"))
+```
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;await给事件艾伦训法un提供了一个断点，因此在等待资源期间，事件艾伦循环可继续管理其他协程。锦上添花的是，协程也是awaitable，因此可使用await语句将协程异步串联起来。在下面的示例中，重写了本章前面定义的network_request--将time.sleep替换为asyncio.sleep。见example10.py。
+
+```py
+async def network_request(number: float):
+    await asyncio.sleep(1)
+    return {"success": True, "result": number ** 2}
+```
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;接下来，可重新思想fetch_square。可直接等待(await)network_request，而不需要额外的future或回调函数。
+
+```py
+async def fetch_square(number: float):
+    response = await network_request(number)
+    if response["response"]:
+        print(f'{number} ** 2 is {response["result"]}')
+```
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;可使用loop.run_until_complete分别运行协程：
+
+```py
+loop.run_until_complete(fetch_square(2))
+loop.run_until_complete(fetch_square(3))
+loop.run_until_complete(fetch_square(4))
+```
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;对测试和调试来说，使用run_until_complete来运行任务很好，但在大多数情况下，程序都将首先执行loop.run_forever，因此需要在循环已经在运行的情况下提交任务。asyncio提供了函数ensure_future，可用来调度协程(和future)。要使用ensure_future，只需将要调度的协程传递给它即可。下面的代码调地多个fetch_square调用，这些调用将并发地执行。另外，向它传递一个协程时，函数asyncio.ensure_future将返回一个Task示例(Task是Future的子类)，这既能使用await语法，又能利用future的资源跟踪功能。
+
+```py
+asyncio.ensure_future(fetch_square(2))
+asyncio.ensure_future(fetch_square(3))
+asyncio.ensure_future(fetch_square(4))
+# 要停止循环，可按Ctrl-C
+```
 
 #### 6.2.2 将阻塞代码转换为非阻塞代码
 
