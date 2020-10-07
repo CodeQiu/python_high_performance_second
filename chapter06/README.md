@@ -455,7 +455,101 @@ def fetch_urls(urls):
 
 ### 6.3 响应式编程
 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;响应式编程是一种编程范式，旨在打造更出色的并发系统。响应式应用程序符合响应式宣言(reactive manifesto)规定的要求。
+
+- 响应速度快： 系统迅速地响应用户。
+- 伸缩性高： 系统能够处理不同水平的负载，并能够适应更严苛的需求。
+- 富有弹性： 系统能够妥善地应对故障，这是通过模块化以及避免单点故障实现的。
+- 消息驱动： 系统不应阻塞，并利用事件和消息。消息驱动的应用程序有助于满足前述所有需求。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;以RxPy库为例介绍响应式编程的原理。ReactiveX是一个项目，实现了用于众多语言响应式编程工具，而RxPy是其中一个库。
+
 #### 6.3.1 被观察者
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;响应式编程的主要理念是对事件作出响应。前一节介绍了使用回调函数实现这种理念的示例：注册回调函数，使其在事件发生时立即执行。响应式编程扩展了这种理念，它将事件视为数据流。为证明这一点，来看看RxPy中一些这样的流。可基于迭代器来创建数据流，为此可使用工厂方法Observable.from_iterable，要接收来自obs的数据，可使用方法Observable.subscribe，这样将对数据源发射的每个值执行传入的函数。见文件example14.py。如下所示。
+
+```py
+from rx import from_iterable
+# 原文
+# from rx import Observable
+# obs = Observable.from_iterable(range(4))  
+# 报错 后面的调用也会修改
+obs = from_iterable(range(4))
+
+obs.subscribb(print)
+```
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;注意到，被观察者是有序的元素集合，就像列表(推而广之是像迭代器)一样。这并非巧合。
+
+```text
+术语：observable(被观察者)由observer(观察者)和iterable(可迭代对象)组合而成。观察者是一个对象，在其观察的变量发生变化时作出反应，而可迭代对象能够生成并跟踪迭代器。
+```
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在python中，迭代器时定义了方法__next__的对象，你可通过调用next来提取其元素。迭代器通常是通过集合执行iter来生成的。生成迭代器后，就可使用next或for循环来提取元素。提取迭代器中的一个元素后，就不能回头去再提取。下面从一个列表创建一个迭代器，已演示迭代器的用法。见文件example15.py。
+
+```py
+collection = list([1,2,3,4,5,6])
+iterator = iter(collection)
+
+print("Next")
+print(next(iterator))
+print(next(iterator))
+
+print("For loop")
+for i in iterator:
+    print(i)
+
+# 输出：
+# Next
+# 1
+# 2
+# For loop
+# 3
+# 4
+# 5
+# 6
+```
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;由这个示例可知，每当调用next或者进行迭代时，迭代器都会生成一个值并前进一步。从某种意义上来说，这是从迭代器中提取结果。
+
+```text
+迭代器看起来很像生成器，但更通用。在python中，生成器是由使用yield表达式的函数返回的。生成器支持next，因此是以izhong特殊的迭代器。
+```
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;被观察者准备就绪后推送一个数据流，它还能够在出现错误或没有更多数据时反馈。实际上，可使用方法Observable.subscribe注册其他回调函数。在下面的示例中，创建了一个被观察者，并使用参数on_next和on_completed注册了两个问题函数，这两个回调函数将分别在下一项数据可用以及没有更多数据时被调用。见文件example16.py。
+
+```py
+from rx import from_iter
+
+obs = from_iter(range(4))
+obs.subscribe(on_next=lambda x:print(f"Next item: {x}"), on_completed=lambda: print("No more data"))
+
+# 输出：
+# Next item: 0
+# Next item: 1
+# Next item: 2
+# Next item: 3
+# No more data
+```
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;这种与迭代器的类似性很重要，因为可以使用处理迭代器的方法来处理事件流。RxPy提供了可用来创建，变换和过滤被观察者以及对其进行编组的运算符。响应式编程的威力在于，这些操作返回其他被观察者，因此可将它们串联和组合到一起。为了体会这一点，下面演示take运算符的用法。见example17.py。给定一个被观察者，take返回一个新的被观察者，但这个被观察者只提供前n个元素。这个运算符的用法非常简单。
+
+```py
+# 代码问题，以后补充
+from rx import from_iterable
+
+obs = from_iterable(range(100000))
+obs2 = obs.take(4)
+
+obs2.subscribe(print)
+# 输出：
+# 0
+# 1
+# 2
+# 3
+```
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RxPy实现了丰富而多样的运算符，可使用它们来创建复杂的应用程序。
 
 #### 6.3.2 很有用的运算符
 
