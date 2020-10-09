@@ -138,7 +138,133 @@ list(results)
 
 #### 7.2.3 使用蒙特卡洛方法计算pi的近似值
 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;作为一个示例，实现一个高度并行的程序--使用蒙特卡洛方法计算pi的近似值。假设有一个边长为2单位的正方形，其面积为4。接下来，在这个正方形内雕刻出一个半径为1单位的圆。圆的面积为pi * r ** 2。在这个程序中，将采取以下策略：
+
+- 生成大量均匀分布的随机数(x,y)，这些随机数的范围为(-1,1)
+- 检查这些数字是否落在圆内，方法是检验x ** 2 + y ** 2 <= 1
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;编写并行程序时，首先要做的是编写串行版本，并核实它能够正确地工作。在实际工作中，应将并行化作为优化过程的最后一部。首先，需要找出运行速度缓慢的部分；其次，并行化是项耗时的工作，其速度提升受制于处理器数量。这个程序的串行版本的实现如下(见文件example07.py)：
+
+```py
+import random
+
+samples = 100,0000
+hits = 0
+
+for i in range(samples):
+    x = random.uniform(-1.0, 1.0)
+    y = rangom.uniform(-1.0, 1.0)
+    
+    if x ** 2 + y ** 2 <= 1:
+        hits += 1
+pi = 4.0 * hits / samples
+```
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;计算结果的精度随样本数量的增加而提高。注意，各个循环迭代是彼此独立的--这个问题是高度并行的。要并行化这些代码，可编写一个函数--sample，它对应于单次是否击中的检查。如果样本击中了圆，这个函数将返回1，否则返回0.通过运行sample多次，并将其返回的结果累加，就可得到总共击中的次数。可像下面这样使用apple_async在多个进程中运行sample并获取结果(代码见文件example08.py)：
+
+```py
+import multiprocessing
+import random
+
+def sample():
+    x = random.uniform(-1.0, 1.0)
+    y = random.uniform(-1.0, 1.0)
+
+    if x ** 2 + y ** 2 <= 1:
+        return 1
+    else:
+        return 0
+
+smaples = 1000000
+pool = multiprocessing.Pool()
+results_async = [pool.apply_async(sample) for i in range(samples)]
+hits = sum(r.get() for r in results_async)
+pi = 4.0 * hits / samples
+```
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;经过实际运行测试结果可知，第一个并行版本实际上降低了代码的执行速度。这是因为与将任务发送并分配给工作进程的开销相比，执行计算花费的时间很短。要解决这个问题，必须让开销相比于计算时间可以忽略不计。例如，可让每个工作进程每次处理多个样本，从而降低通信开销。可编写一个smaple_multiple函数，它执行多个是否击中的检查，同时修改当前的并行版本，将问题分成10个子单元，如下面的代码所示(代码见example09.py)：
+
+```py
+import random
+import multiprocessing
+
+def sample():
+    x = random.uniform(-1.0, 1.0)
+    y = random.uniform(-1.0, 1.0)
+
+    if x ** 2 + y ** 2 <= 1:
+        return 1
+    else:
+        return 0
+
+def sample_multiple(samples_partial):
+    return sum(sample() for i in range(samples_partial))
+
+samples = 1000000
+n_tasks = 10
+chunk_size = int(samples / n_tasks)
+
+pool = multiprocessing.Pool()
+results_async = [pool.apply_async(sample_multiple, [chunk_size]) for i in range(n_tasks)]
+
+hits = sum(r.get() for r in results_async)
+pi = 4.0 * hits / samples
+```
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;程序运行速率提高了。另外，注意指标user大于real。为何总CPU时间大于总时间呢？因为多个CPU在同时工作。如果增大样本数，将发现通信事件与计算时间的比值随之下降，速度得到进一步的提升。
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;高度并行的问题处理起来非常简单，但在有些情况下，必须在进程间共享数据。
+
 #### 7.2.4 同步和锁
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;虽然multiprocessing使用的是进程(这些进程有自己的内存区域)，但它也允许将变量和数组定义为共享内存。要共享变量，可使用multiprocessing.Value，并传入一个表示变量数据类型的字符串(i表示整型，d表示double，f表示float等)。要修改这种变量的内容，可使用属性value，如下所示：
+
+```py
+shared_variable = multiprocessing.Value("f")
+shared_variable.value = 0
+```
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;使用共享内存时，必须考虑同时访问的问题。假设有一个共享的整型变量，而每个进程都将其值递增多次。定义一个下面的进程类：
+
+```py
+class Process(multiprocessing.Process):
+    def __init__(self, counter):
+        super(Process, self).__init__()
+        self.counter = counter
+    def run(self):
+        for i in range(1000):
+            self.counter.value += 1
+```
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;可在主程序中初始化这个共享变量，并将其传递给4个进程，如下面代码所示(代码见example10.py)：
+
+```py
+def main():
+    counter = multiprocessing.Value("i", lock=True)
+    counter.value = 0
+
+    processes = [Process(counter) for i in range(4)]
+    [p.start() for p in processes]
+    [p.join() for p in processes] # 进程执行完毕
+    print(f"counter.value is {counter.value}")
+```
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;如果运行这个程序，将发现counter的最终值不是4000，而是随机的。如果假设算术运算正确无误，就可确定并行化存在问题。实际发生的情况是，多个进程同时试图访问同一个共享变量。要解决这个问题，需要同步对这个变量的访问，确保每次只有一个进程访问该变量，将其值加1并写回。multiprocessing.Lock类提供了这种功能。要获取和释放锁，可分别使用方法acquire和release，也可将锁用作上下文管理器。由于每次只有一个进程能够获取锁，这种方法可防止多个进程同时执行受保护的代码部分。可定义一个全局锁，并将其用作上下文管理器，以限制对变量counter的访问，如下代码所示(见文件example11.py)：
+
+```py
+lock = multiprocessing.Lock()
+class Process(multiprocessing.Process):
+    def __init__(self, counter):
+        super(Process, self).__init__()
+        self.counter = 0
+    def run(self):
+        for i in range(1000):
+            with lock: # 获取锁
+                self.counter.value += 1
+                # 释放锁
+```
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;诸如锁等同步元语对解决众多问题来所必不可少，但应尽可能少用，以改善程序的性能。
 
 ### 7.3 使用OpenMP编写并行的Cython代码
 
